@@ -2,10 +2,7 @@
 -- Note: needs casts in some circumstances
 CREATE OR REPLACE FUNCTION null_safe_cmp(anyelement, anyelement)
 RETURNS integer AS '
-  SELECT CASE
-    WHEN ($1 IS DISTINCT FROM $2) THEN 0
-    ELSE 1
-  END 
+  SELECT (NOT ($1 IS DISTINCT FROM $2))::integer 
 ' IMMUTABLE LANGUAGE SQL;
 
 CREATE OPERATOR <=> (
