@@ -54,6 +54,49 @@ RETURNS integer AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- DATE_FORMAT()
+-- Will make errors with strings like '%%y'
+-- Not implemented week of year
+CREATE OR REPLACE FUNCTION date_format(timestamp, text)
+RETURNS text AS $$
+  SELECT pg_catalog.to_char($1,
+    pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(
+    pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(
+    pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(
+    pg_catalog.replace(pg_catalog.replace($2, 
+      '%a', 'Dy'), 
+      '%b', 'Mon'), 
+      '%c', 'FMMM'), 
+      '%D', 'FMDDth'), 
+      '%d', 'DD'), 
+      '%e', 'FMDD'), 
+      '%f', 'US'), 
+      '%H', 'HH24'), 
+      '%h', 'HH12'), 
+      '%I', 'HH12'),      
+      '%i', 'MI'), 
+      '%j', 'DDD'), 
+      '%k', 'FMHH24'), 
+      '%l', 'FMHH12'), 
+      '%M', 'FMMonth'), 
+      '%m', 'MM'), 
+      '%p', 'AM'), 
+      '%r', 'HH12:MI:SS AM'), 
+      '%S', 'SS'),
+      '%s', 'SS'),
+      '%T', 'HH24:MI:SS'), 
+      '%U', '?'),
+      '%u', '?'), 
+      '%V', '?'), 
+      '%v', '?'), 
+      '%W', 'FMDay'), 
+      '%w', EXTRACT(DOW FROM $1)), 
+      '%X', '?'), 
+      '%x', '?'), 
+      '%Y', 'YYYY'), 
+      '%y', 'YY'),
+      '%%', '%')
+  )
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- DAY()
 CREATE OR REPLACE FUNCTION day(date)
@@ -92,11 +135,16 @@ RETURNS date AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- FROM_UNIXTIME()
--- Haven't implemented integer-context variant, not second formatting
+-- Haven't implemented integer-context variant, nor second formatting
 -- parameter.
-CREATE OR REPLACE FUNCTION from_unixtime(integer)
+CREATE OR REPLACE FUNCTION from_unixtime(bigint)
 RETURNS timestamp without time zone AS $$
   SELECT 'epoch'::timestamp + $1 * INTERVAL '1 second'
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION from_unixtime(bigint, text)
+RETURNS text AS $$
+  SELECT date_format(from_unixtime($1), $2)
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- GET_FORMAT()
@@ -220,6 +268,48 @@ RETURNS interval AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- STR_TO_DATE()
+-- XXX: DOESN'T WORK YET
+CREATE OR REPLACE FUNCTION str_to_date(text, text)
+RETURNS timestamp without time zone AS $$
+  SELECT pg_catalog.to_timestamp($1,
+    pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(
+    pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(
+    pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(
+    pg_catalog.replace(pg_catalog.replace($2, 
+      '%a', 'Dy'), 
+      '%b', 'Mon'), 
+      '%c', 'FMMM'), 
+      '%D', 'FMDDth'), 
+      '%d', 'DD'), 
+      '%e', 'FMDD'), 
+      '%f', 'US'), 
+      '%H', 'HH24'), 
+      '%h', 'HH12'), 
+      '%I', 'HH12'),      
+      '%i', 'MI'), 
+      '%j', 'DDD'), 
+      '%k', 'FMHH24'), 
+      '%l', 'FMHH12'), 
+      '%M', 'FMMonth'), 
+      '%m', 'MM'), 
+      '%p', 'AM'), 
+      '%r', 'HH12:MI:SS AM'), 
+      '%S', 'SS'),
+      '%s', 'SS'),
+      '%T', 'HH24:MI:SS'), 
+      '%U', '?'),
+      '%u', '?'), 
+      '%V', '?'), 
+      '%v', '?'), 
+      '%W', 'FMDay'), 
+      '%w', '?'), 
+      '%X', '?'), 
+      '%x', '?'), 
+      '%Y', 'YYYY'), 
+      '%y', 'YY'),
+      '%%', '%')
+  )::timestamp without time zone
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- SUBDATE
 
@@ -297,3 +387,26 @@ CREATE OR REPLACE FUNCTION utc_timestamp()
 RETURNS timestamp(0) AS $$
   SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::timestamp(0)
 $$ VOLATILE LANGUAGE SQL;
+
+-- WEEK()
+
+-- WEEKDAY()
+CREATE OR REPLACE FUNCTION weekday(date)
+RETURNS integer AS $$
+  SELECT CASE
+    WHEN EXTRACT(DOW FROM $1)::integer = 0 THEN
+      6
+    ELSE
+      EXTRACT(DOW FROM $1)::integer - 1
+    END
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+-- WEEKOFYEAR()
+
+-- YEAR()
+CREATE OR REPLACE FUNCTION year(date)
+RETURNS integer AS $$
+  SELECT EXTRACT(YEAR FROM DATE($1))::integer
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+-- YEARWEEK()
