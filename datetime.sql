@@ -1,102 +1,103 @@
 -- ADDDATE(), DATE_ADD()
 CREATE OR REPLACE FUNCTION adddate(date, interval)
-RETURNS date AS '
+RETURNS date AS $$
   SELECT ($1 + $2)::date
-' IMMUTABLE STRICT LANGUAGE SQL;
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- XXX: change to timestamps?
 CREATE OR REPLACE FUNCTION date_add(date, interval)
-RETURNS date AS '
+RETURNS date AS $$
   SELECT ($1 + $2)::date
-' IMMUTABLE STRICT LANGUAGE SQL;
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION adddate(date, integer)
-RETURNS date AS '
-  SELECT ($1 + $2 * interval ''1 day'')::date
-' IMMUTABLE STRICT LANGUAGE SQL;
+RETURNS date AS $$
+  SELECT ($1 + $2 * interval '1 day')::date
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- ADDTIME()
+-- Broken??
 CREATE OR REPLACE FUNCTION addtime(time, time)
-RETURNS time AS '
+RETURNS time AS $$
   SELECT ($1 + $2)::time
-' IMMUTABLE STRICT LANGUAGE SQL;
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION addtime(timestamp, time)
-RETURNS timestamp AS '
+RETURNS timestamp AS $$
   SELECT ($1 + $2)::timestamp
-' IMMUTABLE STRICT LANGUAGE SQL;
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- CONVERT_TZ()
 CREATE OR REPLACE FUNCTION convert_tz(timestamp without time zone, text, text)
-RETURNS timestamp without time zone AS '
-  SELECT ($1 || '' '' || $2)::timestamp with time zone AT TIME ZONE $3
-' IMMUTABLE LANGUAGE SQL;
+RETURNS timestamp without time zone AS $$
+  SELECT ($1 || ' ' || $2)::timestamp with time zone AT TIME ZONE $3
+$$ IMMUTABLE LANGUAGE SQL;
 
 -- CURDATE()
 -- Haven't implemented integer-context variant
 CREATE OR REPLACE FUNCTION curdate()
-RETURNS date AS '
+RETURNS date AS $$
   SELECT CURRENT_DATE
-' VOLATILE LANGUAGE SQL;
+$$ VOLATILE LANGUAGE SQL;
 
 -- CURTIME()
 -- Haven't implemented integer-context variant
 CREATE OR REPLACE FUNCTION curtime()
-RETURNS time without time zone AS '
+RETURNS time without time zone AS $$
   SELECT LOCALTIME(0)
-' VOLATILE LANGUAGE SQL;
+$$ VOLATILE LANGUAGE SQL;
 
 -- DATEDIFF()
 CREATE OR REPLACE FUNCTION datediff(date, date)
-RETURNS integer AS '
+RETURNS integer AS $$
   SELECT $1 - $2
-' IMMUTABLE STRICT LANGUAGE SQL;
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- DATE_FORMAT()
 
 -- DAY()
 CREATE OR REPLACE FUNCTION day(date)
-RETURNS integer AS '
+RETURNS integer AS $$
   SELECT EXTRACT(DAY FROM DATE($1))::integer
-' IMMUTABLE STRICT LANGUAGE SQL;
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- DAYNAME()
 CREATE OR REPLACE FUNCTION dayname(date)
-RETURNS text AS '
-  SELECT pg_catalog.to_char($1, ''FMDay'')
-' IMMUTABLE STRICT LANGUAGE SQL;
+RETURNS text AS $$
+  SELECT pg_catalog.to_char($1, 'FMDay')
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- DAYOFMONTH()
 CREATE OR REPLACE FUNCTION dayofmonth(date)
-RETURNS integer AS '
+RETURNS integer AS $$
   SELECT EXTRACT(DAY FROM DATE($1))::integer
-' IMMUTABLE STRICT LANGUAGE SQL;
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- DAYOFWEEK()
 CREATE OR REPLACE FUNCTION dayofweek(date)
-RETURNS integer AS '
+RETURNS integer AS $$
   SELECT EXTRACT(DOW FROM DATE($1))::integer + 1
-' IMMUTABLE STRICT LANGUAGE SQL;
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- DAYOFYEAR()
 CREATE OR REPLACE FUNCTION dayofyear(date)
-RETURNS integer AS '
+RETURNS integer AS $$
   SELECT EXTRACT(DOY FROM DATE($1))::integer
-' IMMUTABLE STRICT LANGUAGE SQL;
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- FROM_DAYS()
 CREATE OR REPLACE FUNCTION from_days(integer)
-RETURNS date AS '
-  SELECT (''0000-01-01''::date + $1 * INTERVAL ''1 day'')::date
-' IMMUTABLE STRICT LANGUAGE SQL;
+RETURNS date AS $$
+  SELECT ('0000-01-01'::date + $1 * INTERVAL '1 day')::date
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- FROM_UNIXTIME()
 -- Haven't implemented integer-context variant, not second formatting
 -- parameter.
 CREATE OR REPLACE FUNCTION from_unixtime(integer)
-RETURNS timestamp without time zone AS '
-  SELECT ''epoch''::timestamp + $1 * INTERVAL ''1 second''
-' IMMUTABLE STRICT LANGUAGE SQL;
+RETURNS timestamp without time zone AS $$
+  SELECT 'epoch'::timestamp + $1 * INTERVAL '1 second'
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- GET_FORMAT()
 -- Note that first parameter needs to be quoted in this version
@@ -175,20 +176,22 @@ RETURNS integer AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- MINUTE()
+CREATE OR REPLACE FUNCTION minute(time)
+RETURNS integer AS $$
+  SELECT EXTRACT(MINUTES FROM $1)::integer
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- MONTH()
--- ?? Needs to support timestamps?
 CREATE OR REPLACE FUNCTION month(date)
-RETURNS integer AS '
+RETURNS integer AS $$
   SELECT EXTRACT(MONTH FROM DATE($1))::integer
-' IMMUTABLE STRICT LANGUAGE SQL;
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- MONTHNAME()
--- ?? Needs to support timestamps?
 CREATE OR REPLACE FUNCTION monthname(date)
-RETURNS text AS '
-  SELECT pg_catalog.to_char($1, ''FMMonth'')
-' IMMUTABLE STRICT LANGUAGE SQL;
+RETURNS text AS $$
+  SELECT pg_catalog.to_char($1, 'FMMonth')
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- NOW()
 -- Does not support integer context.
@@ -198,8 +201,99 @@ RETURNS text AS '
 -- PERIOD_DIFF()
 
 -- QUARTER()
--- ?? Needs to support timestamps?
 CREATE OR REPLACE FUNCTION quarter(date)
-RETURNS integer AS '
+RETURNS integer AS $$
   SELECT EXTRACT(QUARTER FROM DATE($1))::integer
-' IMMUTABLE STRICT LANGUAGE SQL;
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+-- SECOND()
+CREATE OR REPLACE FUNCTION second(time)
+RETURNS integer AS $$
+  SELECT EXTRACT(SECONDS FROM $1)::integer
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+-- SEC_TO_TIME()
+-- Haven't implemented integer-context variant
+CREATE OR REPLACE FUNCTION sec_to_time(integer)
+RETURNS interval AS $$
+  SELECT $1 * INTERVAL '1 second'
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+-- STR_TO_DATE()
+
+-- SUBDATE
+
+-- SUBTIME
+-- Haven't done (interval, interval) version
+CREATE OR REPLACE FUNCTION subtime(timestamp, interval)
+RETURNS timestamp AS $$
+  SELECT $1 - $2
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+-- SYSDATE()
+CREATE OR REPLACE FUNCTION sysdate()
+RETURNS timestamp without time zone AS $$
+  SELECT pg_catalog.timeofday()::timestamp(0) without time zone
+$$ VOLATILE LANGUAGE SQL;
+
+-- TIME()
+-- Not possible to implement
+
+-- TIMEDIFF()
+
+-- TIMESTAMP()
+-- Not possible to implement
+
+-- TIMESTAMPADD()
+
+-- TIMESTAMPDIFF()
+
+-- TIME_FORMAT()
+
+-- TIME_TO_SEC()
+CREATE OR REPLACE FUNCTION time_to_sec(interval)
+RETURNS integer AS $$
+  SELECT (EXTRACT(HOURS FROM $1) * 3600
+    + EXTRACT(MINUTES FROM $1) * 60
+    + EXTRACT(SECONDS FROM $1))::integer
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+-- TO_DAYS()
+-- Haven't done integer variant
+CREATE OR REPLACE FUNCTION to_days(date)
+RETURNS integer AS $$
+  SELECT $1 - '0000-01-01'::date
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+-- UNIX_TIMESTAMP()
+CREATE OR REPLACE FUNCTION unix_timestamp()
+RETURNS bigint AS $$
+  SELECT EXTRACT(EPOCH FROM LOCALTIMESTAMP)::bigint
+$$ VOLATILE LANGUAGE SQL;
+
+-- XXX: This gives wrong answers? Time zones?
+CREATE OR REPLACE FUNCTION unix_timestamp(timestamp)
+RETURNS bigint AS $$
+  SELECT EXTRACT(EPOCH FROM $1)::bigint
+$$ VOLATILE LANGUAGE SQL;
+
+-- UTC_DATE()
+-- Haven't done integer variant
+CREATE OR REPLACE FUNCTION utc_date()
+RETURNS date AS $$
+  SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date
+$$ VOLATILE LANGUAGE SQL;
+
+-- UTC_TIME()
+-- Haven't done integer variant
+CREATE OR REPLACE FUNCTION utc_time()
+RETURNS time(0) AS $$
+  SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::time(0)
+$$ VOLATILE LANGUAGE SQL;
+
+-- UTC_TIMESTAMP()
+-- Haven't done integer variant
+CREATE OR REPLACE FUNCTION utc_timestamp()
+RETURNS timestamp(0) AS $$
+  SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::timestamp(0)
+$$ VOLATILE LANGUAGE SQL;
