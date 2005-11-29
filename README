@@ -1,0 +1,95 @@
+MySQL Compatibility Functions
+=============================
+
+Author: Chris Kings-Lynne
+
+Introduction
+------------
+
+This project is a collection of functions, aggregates
+and operators that make PostgreSQL mimic MySQL as
+closely as possible.
+
+To use the project, you can either find and execute the
+few functions that you need, or run all the .sql files
+to install the complete compatibility environment.
+
+Installation
+------------
+
+First, you must have created a database in PostgreSQL.
+
+Next, load any (or all) of the .sql files into that 
+database, eg:
+
+  psql -f datetime.sql <dbname>
+
+You will see a series of CREATE (and other) tags
+that indicates each successful command.  Read any
+other messages that appear as they may be errors.
+
+Alternatively, you can execute the SQL scripts via
+a GUI tool such as pgAdmin (www.pgadmin.org) or
+phpPgAdmin (phppgadmin.sf.net). 
+
+Usage
+-----
+
+If you have followed the installation notes above, then
+all the MySQL compatibility functions, operators and
+aggregates will be installed in the public schema of your
+database.  This means you can use them without any special
+qualification.
+
+Here are some examples:
+
+SELECT true && false;
+=> f
+
+SELECT format(1234.432, 4);
+=> 1,234.4320
+
+General Compatibility Notes
+---------------------------
+
+In some cases (obviously) MySQL is just too different
+from PostgreSQL to allow re-implementation of features.
+
+This usually happens when a MySQL feature would require
+changing the PostgreSQL SQL grammar.
+
+Here is a list of major incompatibilities:
+
+* Boolean vs. Integer
+
+MySQL has no boolean type, and instead it uses the integer
+values 0 and 1 as boolean results.  PostgreSQL has a true
+boolean type and it can accept 0, 1, true, false, 't' or 'f'
+as values.  However, by default all boolean values are SHOWN
+as either 't' or 'f'.
+
+Since PostgreSQL already has most of MySQL's logical operators
+(eg. OR, AND, etc.) which all return 't' or 'f' to mean true or
+false, then there isn't much point returning 0 or 1 for the
+two or three logical operators that this library implements.
+This is just something you need to deal with during porting.
+
+Tip: PostgreSQL includes a boolean to integer explicit cast, eg:
+
+SELECT true::integer + 1;
+=> 2
+
+* Time vs. Interval
+
+MySQL has no interval type, and hence often confuses 'time'
+with 'interval'.  For example, '123:13:56' is a valid interval
+but is an invalid time.
+
+This library uses the PostgreSQL interval type for many of the
+MySQL functions that require or return times.  In general
+this won't make any difference.
+
+* Failure to find overloaded functions
+
+In some cases (due to the way PostgreSQL works) you will need
+to add explicit casts to some function calls.
