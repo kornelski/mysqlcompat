@@ -30,7 +30,7 @@ $$ IMMUTABLE STRICT LANGUAGE SQL;
 -- CONVERT_TZ()
 CREATE OR REPLACE FUNCTION convert_tz(timestamp without time zone, text, text)
 RETURNS timestamp without time zone AS $$
-  SELECT ($1 || ' ' || $2)::timestamp with time zone AT TIME ZONE $3
+  SELECT ($1 operator(pg_catalog.||) ' ' operator(pg_catalog.||) $2)::timestamp with time zone AT TIME ZONE $3
 $$ IMMUTABLE LANGUAGE SQL;
 
 -- CURDATE()
@@ -192,9 +192,9 @@ CREATE OR REPLACE FUNCTION last_day(timestamp)
 RETURNS date AS $$ 
   SELECT CASE
     WHEN EXTRACT(MONTH FROM $1) = 12 THEN
-      (((EXTRACT(YEAR FROM $1) + 1) || '-01-01')::date - INTERVAL '1 day')::date
+      (((EXTRACT(YEAR FROM $1) + 1) operator(pg_catalog.||) '-01-01')::date - INTERVAL '1 day')::date
     ELSE
-      ((EXTRACT(YEAR FROM $1) || '-' || (EXTRACT(MONTH FROM $1) + 1) || '-01')::date - INTERVAL '1 day')::date
+      ((EXTRACT(YEAR FROM $1) operator(pg_catalog.||) '-' operator(pg_catalog.||) (EXTRACT(MONTH FROM $1) + 1) operator(pg_catalog.||) '-01')::date - INTERVAL '1 day')::date
     END
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
@@ -202,7 +202,7 @@ $$ IMMUTABLE STRICT LANGUAGE SQL;
 CREATE OR REPLACE FUNCTION makedate(integer, integer)
 RETURNS date AS $$
   SELECT CASE WHEN $2 > 0 THEN
-    (($1 || '-01-01')::date + ($2 - 1) * INTERVAL '1 day')::date
+    (($1 operator(pg_catalog.||) '-01-01')::date + ($2 - 1) * INTERVAL '1 day')::date
   ELSE
     NULL
   END
@@ -212,7 +212,7 @@ $$ IMMUTABLE STRICT LANGUAGE SQL;
 -- ??? Should this return an interval? Does mysql accept hour > 23?
 CREATE OR REPLACE FUNCTION maketime(integer, integer, integer)
 RETURNS time AS $$
-  SELECT ($1 || ':' || $2 || ':' || $3)::time
+  SELECT ($1 operator(pg_catalog.||) ':' operator(pg_catalog.||) $2 operator(pg_catalog.||) ':' operator(pg_catalog.||) $3)::time
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- MICROSECOND()
@@ -410,3 +410,30 @@ RETURNS integer AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- YEARWEEK()
+
+/*
+
+set check_function_bodies = false;
+
+-- dff(format) - return the to_char format for a %-spec
+create function dff(text) returns text language sql
+ as $f$ select case when $1 = '%' then '%'
+                    when $1 = 'Y' then 'YYYY'
+                    when $1 = 'm' then 'MM'
+                    when $1 = 'd' then 'DD'
+                    else '' end $f$;
+ 
+-- df2(time,prefix,format,suffix)
+create function df2(timestamptz,text,text,text) returns text language sql
+ as $f$ select case when $1 is null then null
+                    when $2 is null then null
+                    when $3 is null then $2
+                    when $4 is null then $2
+                    else $2 operator(pg_catalog.||) to_char($1,dff($3)) operator(pg_catalog.||) date_format($1,$4) end $f$;
+ 
+create or replace function date_format(timestamptz,text) returns text language sql
+ as $f$ select df2($1,
+                   substring($2 from '^(.*?)(?:%[%A-Za-z].*)?$'),
+                   substring($2 from '^(?:.*?)(?:%([%A-Za-z]).*)$'),
+                   substring($2 from '^(?:.*?)(?:%[%A-Za-z](.*))$')) $f$;
+*/

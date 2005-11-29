@@ -11,7 +11,7 @@ RETURNS double precision AS '
 CREATE OR REPLACE FUNCTION format(double precision, integer)
 RETURNS text AS '
   SELECT pg_catalog.to_char($1, ''FM999,999,999,999,999,999,999.'' 
-    || pg_catalog.repeat(''0'', $2))
+    operator(pg_catalog.||) pg_catalog.repeat(''0'', $2))
 ' IMMUTABLE STRICT LANGUAGE SQL;
 
 -- LN, LOG

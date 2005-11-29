@@ -20,7 +20,7 @@ RETURNS text AS $$
   SELECT CASE
     WHEN $2 IS NULL THEN $1
     WHEN $1 IS NULL THEN $2
-    ELSE $1 || ',' || $2
+    ELSE $1 operator(pg_catalog.||) ',' operator(pg_catalog.||) $2
   END
 $$ IMMUTABLE LANGUAGE SQL;
 
