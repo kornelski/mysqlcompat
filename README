@@ -19,6 +19,12 @@ Installation
 
 First, you must have created a database in PostgreSQL.
 
+Then, a few of the functions are written in the PL/PgSQL
+language handler.  If you use these functions you need
+to install that handler, like this:
+
+  createlang plpgsql <dbname>
+
 Next, load any (or all) of the .sql files into that 
 database, eg:
 
@@ -89,7 +95,28 @@ This library uses the PostgreSQL interval type for many of the
 MySQL functions that require or return times.  In general
 this won't make any difference.
 
+* Missing operators
+
+XOR, DIV and MOD named operators cannot be implemented.  Use
+#, / (with integer casts) and % instead.
+
+* NULL handling in && and ||
+
+MySQL has very unusual NULL handling in its && and || operators.
+In this library, && and || follow the PostgreSQL way - which
+is that if either operand is NULL, then result is always NULL.
+
+This differs from the MySQL way which is:
+
+SELECT FALSE && NULL;
+=> FALSE
+
+SELECT TRUE || NULL;
+=> TRUE
+
 * Failure to find overloaded functions
 
 In some cases (due to the way PostgreSQL works) you will need
 to add explicit casts to some function calls.
+
+

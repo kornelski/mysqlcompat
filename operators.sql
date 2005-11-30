@@ -1,3 +1,16 @@
+-- <=> NULL SAFE COMPARISON
+-- Note: needs casts in some circumstances
+CREATE OR REPLACE FUNCTION _null_safe_cmp(anyelement, anyelement)
+RETURNS boolean AS '
+  SELECT NOT ($1 IS DISTINCT FROM $2)
+' IMMUTABLE LANGUAGE SQL;
+
+CREATE OPERATOR <=> (
+  PROCEDURE = _null_safe_cmp,
+  LEFTARG = anyelement,
+  RIGHTARG = anyelement
+);
+
 -- &&
 -- XXX: MySQL version has wacky null behaviour 
 CREATE FUNCTION _and(boolean, boolean)
