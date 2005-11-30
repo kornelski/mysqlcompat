@@ -64,6 +64,9 @@ from PostgreSQL to allow re-implementation of features.
 This usually happens when a MySQL feature would require
 changing the PostgreSQL SQL grammar.
 
+Any function name that begins with '_' in this library
+is a "private" function that should not be called directly.
+
 Here is a list of major incompatibilities:
 
 * Boolean vs. Integer
@@ -114,9 +117,15 @@ SELECT FALSE && NULL;
 SELECT TRUE || NULL;
 => TRUE
 
+* Case-sensitive strings
+
+All PostgreSQL strings are case-sensitive.  All MySQL strings are
+case-insensitive by default.  Any functions in this library that
+implement string comparision use CASE-SENSITIVE comparison, just
+like all the other PostgreSQL string functions.
+
 * Failure to find overloaded functions
 
 In some cases (due to the way PostgreSQL works) you will need
 to add explicit casts to some function calls.
-
 
