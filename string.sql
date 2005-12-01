@@ -423,6 +423,22 @@ RETURNS text AS $$
   SELECT pg_catalog.repeat(' ', $1)
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
+-- SUBSTRING_INDEX()
+CREATE OR REPLACE FUNCTION substring_index(text, text, integer)
+RETURNS text AS $$
+  DECLARE
+    tokens text[];
+  BEGIN
+    tokens := pg_catalog.string_to_array($1, $2); 
+
+    IF $3 >= 0 THEN
+      RETURN pg_catalog.array_to_string(tokens[1:$3], $2);
+    ELSE
+      RETURN pg_catalog.array_to_string(tokens[($3 * -1):pg_catalog.array_upper(tokens, 1)], $2);
+    END IF;
+  END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
 -- STRCMP()
 -- Note: comparison is case-sensitive
 CREATE OR REPLACE FUNCTION strcmp(text, text)
