@@ -61,7 +61,88 @@ RETURNS text AS $$
 $$ IMMUTABLE LANGUAGE SQL;
 
 -- CONV()
+-- Credit: Gavin Sherry
+create or replace function _todec(text, int)
+returns int as $$
+declare
+    num int := 0;
+    hex text := '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    pos int := 0;
+    chr text;
+    numin alias for $1;
+    base alias for $2;
+begin
+    if numin isnull or base isnull then
+        return null;
+    end if;
+    for i in 1 .. pg_catalog.length(numin) loop
+        pos := pg_catalog.abs(position(pg_catalog.upper(substring(numin from i for 1)) in hex) - 1);
+        num := num * base + pos;
+    end loop;
+    return num;
+end$$
+language plpgsql
+RETURNS NULL ON NULL INPUT
+IMMUTABLE;
 
+create or replace function conv(text, int, int)
+returns text as
+$$
+declare
+    res text := '';
+    hex text := '0123456789ABCDEFGHIJLMNOPQRSTUVWXYZ';
+    num int;
+    tmp int;
+    tmp2 text;
+    numin text;
+    tobase int;
+    isneg bool := false;
+    numin_p ALIAS FOR $1;
+    frombase ALIAS FOR $2;
+    tobase_p ALIAS FOR $3;
+begin
+    if numin_p < 0 and tobase_p < 0 then
+      isneg := true;
+      numin := numin_p::integer * -1;
+      tobase := tobase_p * -1;
+    else
+      numin := numin_p;
+      tobase := tobase_p;
+    end if;
+
+    if numin isnull OR frombase isnull OR tobase ISNULL then
+        return NULL;
+    elsif frombase < 0 OR frombase > 36 then
+        return NULL;
+    elsif tobase < 0 OR tobase > 36 then
+        return NULL;
+    end if;
+ 
+    if frombase <> 10 then
+        num := _todec(numin, frombase);
+    else
+        num := numin::int;
+    end if;
+ 
+    loop
+        tmp := num % tobase + 1;
+        res := substring( hex from tmp for 1 ) operator(pg_catalog.||) res;
+        num := num/tobase;
+        if num = 0 then
+            exit;
+        end if;
+    end loop;
+    if isneg then
+        return '-' operator(pg_catalog.||) res;
+    else
+        return res;
+    end if;
+end
+$$
+language plpgsql
+RETURNS NULL ON NULL INPUT
+IMMUTABLE;
+ 
 -- ELT()
 CREATE OR REPLACE FUNCTION elt(integer, text, text)
 RETURNS text AS $$
@@ -259,6 +340,11 @@ RETURNS text AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- OCT()
+-- Depends on: CONV()
+CREATE OR REPLACE FUNCTION oct(integer)
+RETURNS text AS $$
+  SELECT conv($1, 10, 8)
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- ORD()
 -- Note: Does not support multibyte
@@ -337,8 +423,6 @@ RETURNS text AS $$
   SELECT pg_catalog.repeat(' ', $1)
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
--- SUBSTRING_INDEX()
-
 -- STRCMP()
 -- Note: comparison is case-sensitive
 CREATE OR REPLACE FUNCTION strcmp(text, text)
@@ -360,3 +444,18 @@ $$ IMMUTABLE STRICT LANGUAGE SQL;
 -- Not implemented.
 
 -- UNHEX()
+-- Depends on: CONV()
+CREATE OR REPLACE FUNCTION unhex(text)
+RETURNS text AS $$
+  DECLARE
+    len integer := pg_catalog.length($1);
+    temp text := '';
+    i int := 1;
+  BEGIN
+    WHILE i <= len LOOP
+      temp := temp operator(pg_catalog.||) pg_catalog.chr(conv(substring($1 from i for 2), 16, 10)::integer);
+      i := i + 2;
+    END LOOP;
+    RETURN temp; 
+  END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
