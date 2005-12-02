@@ -17,10 +17,12 @@ $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- ADDTIME()
 -- Broken??
+/*
 CREATE OR REPLACE FUNCTION addtime(time, time)
 RETURNS time AS $$
   SELECT ($1 + $2)::time
 $$ IMMUTABLE STRICT LANGUAGE SQL;
+*/
 
 CREATE OR REPLACE FUNCTION addtime(timestamp, time)
 RETURNS timestamp AS $$

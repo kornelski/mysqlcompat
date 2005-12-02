@@ -10,9 +10,12 @@ This project is a collection of functions, aggregates
 and operators that make PostgreSQL mimic MySQL as
 closely as possible.
 
-To use the project, you can either find and execute the
+To use the project, you can either find and install the
 few functions that you need, or run all the .sql files
 to install the complete compatibility environment.
+
+This can be an immense time-saver when porting large applications
+that rely heavily on certain MySQL functions.
 
 Installation
 ------------
@@ -27,8 +30,16 @@ to install that handler, like this:
 
 Next, load any (or all) of the .sql files into that 
 database, eg:
+ 
+  psql -f all.sql <dbname>
+
+Or, to install a particular subset of functions:
 
   psql -f datetime.sql <dbname>
+
+Or, if you only want to install a particular function, just
+copy and paste it into psql directly, taking care to install any
+of the function's listed dependencies.
 
 You will see a series of CREATE (and other) tags
 that indicates each successful command.  Read any
@@ -37,6 +48,19 @@ other messages that appear as they may be errors.
 Alternatively, you can execute the SQL scripts via
 a GUI tool such as pgAdmin (www.pgadmin.org) or
 phpPgAdmin (phppgadmin.sf.net). 
+
+Uninstall
+---------
+
+The uninstall.sql script contains drop commands for every object
+in this library.  To drop everything for example, run:
+
+  psql -f uninstall.sql <dbname>
+
+Then, if you have no further need for the PL/PgSQL language handler
+you can drop it as follows:
+
+  droplang plpgsql <dbname>
 
 Usage
 -----

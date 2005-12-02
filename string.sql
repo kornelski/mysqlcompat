@@ -4,12 +4,6 @@ RETURNS text AS $$
   SELECT pg_catalog.ltrim(pg_catalog.textin(pg_catalog.bit_out($1::bit(64))), '0');
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
--- BIT_LENGTH()
-CREATE OR REPLACE FUNCTION bit_length(text)
-RETURNS integer AS $$
-  SELECT pg_catalog.octet_length($1) * 8
-$$ IMMUTABLE STRICT LANGUAGE SQL;
-
 -- CHAR()
 -- Not implemented
 

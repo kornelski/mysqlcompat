@@ -1,3 +1,17 @@
+-- BENCHMARK()
+-- Note: This version requires the expression to be quoted.
+-- Note: To show query times in psql, run \timing first
+-- Example: SELECT BENCHMARK(100000, $$ length('hello') $$);
+CREATE OR REPLACE FUNCTION benchmark(integer, text)
+RETURNS integer AS $$
+  BEGIN
+    FOR i IN 1..$1 LOOP
+      EXECUTE 'SELECT ' || $2;
+    END LOOP;
+    RETURN 0;
+  END;
+$$ STRICT LANGUAGE PLPGSQL;
+
 -- CHARSET()
 -- This is a bit dodgy as it just returns the database encoding
 CREATE OR REPLACE FUNCTION charset(text)
@@ -6,7 +20,20 @@ RETURNS text AS $$
 $$ IMMUTABLE LANGUAGE SQL;
 
 -- COERCIBILITY()
--- Can't be implemented easily...
+-- This is a bit dodgy as PostgreSQL does not support collations
+-- Note: This is MySQL 5.0 compatible
+CREATE OR REPLACE FUNCTION coercibility(name)
+RETURNS integer AS $$
+  SELECT 3
+$$ IMMUTABLE LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION coercibility(text)
+RETURNS integer AS $$
+  SELECT CASE
+    WHEN $1 IS NULL THEN 5
+    ELSE 2
+  END
+$$ IMMUTABLE LANGUAGE SQL;
 
 -- COLLATION()
 -- This is a bit dodgy as it just returns the database collation
