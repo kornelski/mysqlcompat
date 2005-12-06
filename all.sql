@@ -5,5 +5,6 @@
 \i datetime.sql
 \i information.sql
 \i mathematical.sql
+\i misc.sql
 \i operators.sql
 \i string.sql
