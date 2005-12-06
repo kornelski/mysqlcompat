@@ -6,8 +6,8 @@ Author: Chris Kings-Lynne
 Introduction
 ------------
 
-This project is a collection of functions, aggregates
-and operators that make PostgreSQL mimic MySQL as
+This project is a collection of functions, aggregates,
+operators and casts that make PostgreSQL mimic MySQL as
 closely as possible.
 
 To use the project, you can either find and install the
