@@ -1,4 +1,5 @@
 -- INET_ATON()
+-- Credit: Michael Fuhr
 -- Note: doesn't support short addresses, eg '127.1'
 CREATE OR REPLACE FUNCTION inet_aton(inet)
 RETURNS bigint AS $$
@@ -19,6 +20,7 @@ RETURNS bigint AS $$
 $$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
 
 -- INET_NTOA()
+-- Credit: Tom Lane
 CREATE OR REPLACE FUNCTION inet_ntoa(bigint)
 RETURNS text AS $$
   DECLARE 

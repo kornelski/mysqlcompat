@@ -1,49 +1,45 @@
--- ADDDATE(), DATE_ADD()
-CREATE OR REPLACE FUNCTION adddate(date, interval)
-RETURNS date AS $$
-  SELECT ($1 + $2)::date
+-- ADDDATE()
+-- Note: passing in the interval is different
+CREATE OR REPLACE FUNCTION adddate(timestamp without time zone, interval)
+RETURNS timestamp without time zone AS $$
+    SELECT $1 + $2
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
--- XXX: change to timestamps?
-CREATE OR REPLACE FUNCTION date_add(date, interval)
-RETURNS date AS $$
-  SELECT ($1 + $2)::date
-$$ IMMUTABLE STRICT LANGUAGE SQL;
-
-CREATE OR REPLACE FUNCTION adddate(date, integer)
-RETURNS date AS $$
-  SELECT ($1 + $2 * interval '1 day')::date
+CREATE OR REPLACE FUNCTION adddate(timestamp without time zone, integer)
+RETURNS timestamp without time zone AS $$
+  SELECT $1 + (INTERVAL '1 day' * $2)
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- ADDTIME()
--- Broken??
-/*
-CREATE OR REPLACE FUNCTION addtime(time, time)
-RETURNS time AS $$
-  SELECT ($1 + $2)::time
+-- Note: requires casting if you install both versions
+CREATE OR REPLACE FUNCTION addtime(timestamp without time zone, interval)
+RETURNS timestamp without time zone AS $$
+  SELECT $1 + $2
 $$ IMMUTABLE STRICT LANGUAGE SQL;
-*/
 
-CREATE OR REPLACE FUNCTION addtime(timestamp, time)
-RETURNS timestamp AS $$
-  SELECT ($1 + $2)::timestamp
+CREATE OR REPLACE FUNCTION addtime(interval, interval)
+RETURNS interval AS $$
+  SELECT $1 + $2
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- CONVERT_TZ()
 CREATE OR REPLACE FUNCTION convert_tz(timestamp without time zone, text, text)
 RETURNS timestamp without time zone AS $$
-  SELECT ($1 operator(pg_catalog.||) ' ' operator(pg_catalog.||) $2)::timestamp with time zone AT TIME ZONE $3
-$$ IMMUTABLE LANGUAGE SQL;
+  SELECT CASE
+    WHEN POSITION(':' IN $3) = 0 THEN
+      ($1 operator(pg_catalog.||) ' ' operator(pg_catalog.||) $2)::timestamp with time zone AT TIME ZONE $3
+    ELSE
+      ($1 operator(pg_catalog.||) ' ' operator(pg_catalog.||) $2)::timestamp with time zone AT TIME ZONE $3::interval
+    END
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- CURDATE()
--- Haven't implemented integer-context variant
 CREATE OR REPLACE FUNCTION curdate()
 RETURNS date AS $$
   SELECT CURRENT_DATE
 $$ VOLATILE LANGUAGE SQL;
 
 -- CURTIME()
--- Haven't implemented integer-context variant
 CREATE OR REPLACE FUNCTION curtime()
 RETURNS time without time zone AS $$
   SELECT LOCALTIME(0)
@@ -55,7 +51,14 @@ RETURNS integer AS $$
   SELECT $1 - $2
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
+-- DATE_ADD()
+CREATE OR REPLACE FUNCTION date_add(timestamp without time zone, interval)
+RETURNS timestamp without time zone AS $$
+  SELECT $1 + $2
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
 -- DATE_FORMAT()
+-- XXX: TODO
 -- Will make errors with strings like '%%y'
 -- Not implemented week of year
 CREATE OR REPLACE FUNCTION date_format(timestamp, text)
@@ -100,6 +103,12 @@ RETURNS text AS $$
   )
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
+-- DATE_SUB()
+CREATE OR REPLACE FUNCTION date_sub(timestamp without time zone, interval)
+RETURNS timestamp without time zone AS $$
+  SELECT $1 - $2
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
 -- DAY()
 CREATE OR REPLACE FUNCTION day(date)
 RETURNS integer AS $$
@@ -137,11 +146,11 @@ RETURNS date AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- FROM_UNIXTIME()
--- Haven't implemented integer-context variant, nor second formatting
--- parameter.
+-- Returns local time?  Is this actually the same as MySQL?
+-- Depends on: DATE_FORMAT()
 CREATE OR REPLACE FUNCTION from_unixtime(bigint)
 RETURNS timestamp without time zone AS $$
-  SELECT 'epoch'::timestamp + $1 * INTERVAL '1 second'
+  SELECT pg_catalog.to_timestamp($1)::timestamp without time zone
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION from_unixtime(bigint, text)
@@ -211,18 +220,16 @@ RETURNS date AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- MAKETIME()
--- ??? Should this return an interval? Does mysql accept hour > 23?
 CREATE OR REPLACE FUNCTION maketime(integer, integer, integer)
-RETURNS time AS $$
-  SELECT ($1 operator(pg_catalog.||) ':' operator(pg_catalog.||) $2 operator(pg_catalog.||) ':' operator(pg_catalog.||) $3)::time
+RETURNS interval AS $$
+  SELECT ($1 operator(pg_catalog.||) ':' operator(pg_catalog.||) $2 operator(pg_catalog.||) ':' operator(pg_catalog.||) $3)::interval
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- MICROSECOND()
--- ??? Only done time version.  Hard to get timestamp one
--- going as well due to overloading rules.
+-- Timestamp version not implemented
 CREATE OR REPLACE FUNCTION microsecond(time)
 RETURNS integer AS $$
-  SELECT EXTRACT(MICROSECONDS FROM $1)::integer
+  SELECT (EXTRACT(MICROSECONDS FROM $1))::integer % 1000000
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- MINUTE()
@@ -230,6 +237,8 @@ CREATE OR REPLACE FUNCTION minute(time)
 RETURNS integer AS $$
   SELECT EXTRACT(MINUTES FROM $1)::integer
 $$ IMMUTABLE STRICT LANGUAGE SQL;
+
+-- XXXX UP TO HERE XXXX --
 
 -- MONTH()
 CREATE OR REPLACE FUNCTION month(date)
@@ -244,11 +253,100 @@ RETURNS text AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- NOW()
--- Does not support integer context.
+-- Part of base PostgreSQL
 
 -- PERIOD_ADD()
+CREATE OR REPLACE FUNCTION period_add(integer, integer)
+RETURNS text AS $$
+  DECLARE
+    period text;
+    base date;
+    baseyear integer;
+  BEGIN
+      IF pg_catalog.length($1) < 4 THEN
+        period := pg_catalog.lpad($1, 4, 0);
+      ELSIF pg_catalog.length($1) = 5 THEN
+        period := pg_catalog.lpad($1, 6, 0);
+      ELSE
+        period := $1;
+      END IF;
+
+      IF pg_catalog.length(period) = 4 THEN
+        baseyear := SUBSTRING(period FROM 1 FOR 2);
+        IF baseyear BETWEEN 70 AND 99 THEN
+          baseyear := baseyear + 1900;
+        ELSE
+          baseyear := baseyear + 2000;
+        END IF;
+        base := (baseyear operator(pg_catalog.||) '-' operator(pg_catalog.||) SUBSTRING(period FROM 3) operator(pg_catalog.||) '-01')::date;
+      ELSIF pg_catalog.length(period) = 6 THEN
+        base := (SUBSTRING(period FROM 1 FOR 4) operator(pg_catalog.||) '-' operator(pg_catalog.||) SUBSTRING(period FROM 5) operator(pg_catalog.||) '-01')::date;
+      ELSE
+        RETURN NULL;
+      END IF;
+
+      base := base + (INTERVAL '1 month' * $2);
+      RETURN pg_catalog.lpad(EXTRACT(YEAR FROM base), 4, '0') operator(pg_catalog.||) pg_catalog.lpad(EXTRACT(MONTH FROM base), 2, '0');
+  END
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
 
 -- PERIOD_DIFF()
+CREATE OR REPLACE FUNCTION period_diff(integer, integer)
+RETURNS integer AS $$
+  DECLARE
+    baseyear integer;
+    period1 text;
+    period2 text;
+    months1 integer;
+    months2 integer;
+  BEGIN
+      IF pg_catalog.length($1) < 4 THEN
+        period1 := pg_catalog.lpad($1, 4, 0);
+      ELSIF pg_catalog.length($1) = 5 THEN
+        period1 := pg_catalog.lpad($1, 6, 0);
+      ELSE
+        period1 := $1;
+      END IF;
+
+      IF pg_catalog.length(period1) = 4 THEN
+        baseyear := SUBSTRING(period1 FROM 1 FOR 2);
+        IF baseyear BETWEEN 70 AND 99 THEN
+          baseyear := baseyear + 1900;
+        ELSE
+          baseyear := baseyear + 2000;
+        END IF;
+        months1 := baseyear * 12 + SUBSTRING(period1 FROM 3)::integer;
+      ELSIF pg_catalog.length(period1) = 6 THEN
+        months1 := SUBSTRING(period1 FROM 1 FOR 4)::integer * 12 + SUBSTRING(period1 FROM 5)::integer;
+      ELSE
+        RETURN NULL;
+      END IF;
+
+      IF pg_catalog.length($2) < 4 THEN
+        period2 := pg_catalog.lpad($2, 4, 0);
+      ELSIF pg_catalog.length($2) = 5 THEN
+        period2 := pg_catalog.lpad($2, 6, 0);
+      ELSE
+        period2 := $2;
+      END IF;
+
+      IF pg_catalog.length(period2) = 4 THEN
+        baseyear := SUBSTRING(period2 FROM 1 FOR 2);
+        IF baseyear BETWEEN 70 AND 99 THEN
+          baseyear := baseyear + 1900;
+        ELSE
+          baseyear := baseyear + 2000;
+        END IF;
+        months2 := baseyear * 12 + SUBSTRING(period2 FROM 3)::integer;
+      ELSIF pg_catalog.length(period2) = 6 THEN
+        months2 := SUBSTRING(period2 FROM 1 FOR 4)::integer * 12 + SUBSTRING(period2 FROM 5)::integer;
+      ELSE
+        RETURN NULL;
+      END IF;
+
+      RETURN months1 - months2;
+  END
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
 
 -- QUARTER()
 CREATE OR REPLACE FUNCTION quarter(date)
@@ -257,14 +355,13 @@ RETURNS integer AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- SECOND()
-CREATE OR REPLACE FUNCTION second(time)
+CREATE OR REPLACE FUNCTION second(interval)
 RETURNS integer AS $$
   SELECT EXTRACT(SECONDS FROM $1)::integer
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- SEC_TO_TIME()
--- Haven't implemented integer-context variant
-CREATE OR REPLACE FUNCTION sec_to_time(integer)
+CREATE OR REPLACE FUNCTION sec_to_time(bigint)
 RETURNS interval AS $$
   SELECT $1 * INTERVAL '1 second'
 $$ IMMUTABLE STRICT LANGUAGE SQL;
@@ -313,12 +410,27 @@ RETURNS timestamp without time zone AS $$
   )::timestamp without time zone
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
--- SUBDATE
+-- SUBDATE()
+-- Note: passing in the interval is different
+CREATE OR REPLACE FUNCTION subdate(timestamp without time zone, interval)
+RETURNS timestamp without time zone AS $$
+    SELECT $1 - $2
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION subdate(timestamp without time zone, integer)
+RETURNS timestamp without time zone AS $$
+  SELECT $1 - (INTERVAL '1 day' * $2)
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- SUBTIME
--- Haven't done (interval, interval) version
-CREATE OR REPLACE FUNCTION subtime(timestamp, interval)
-RETURNS timestamp AS $$
+-- Note: requires casting if you install both versions
+CREATE OR REPLACE FUNCTION subtime(timestamp without time zone, interval)
+RETURNS timestamp without time zone AS $$
+  SELECT $1 - $2
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION subtime(interval, interval)
+RETURNS interval AS $$
   SELECT $1 - $2
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
@@ -332,26 +444,42 @@ $$ VOLATILE LANGUAGE SQL;
 -- Not possible to implement
 
 -- TIMEDIFF()
+-- Note: requires casting if you install both versions
+CREATE OR REPLACE FUNCTION timediff(timestamp without time zone, timestamp without time zone)
+RETURNS interval AS $$
+  SELECT $1 - $2
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION timediff(time without time zone, time without time zone)
+RETURNS interval AS $$
+  SELECT $1 - $2
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- TIMESTAMP()
 -- Not possible to implement
 
 -- TIMESTAMPADD()
+-- Note that first parameter needs to be quoted in this version
+CREATE OR REPLACE FUNCTION timestampadd(text, integer, timestamp without time zone)
+RETURNS timestamp without time zone AS $$
+  SELECT $3 + ($2 operator(pg_catalog.||) ' ' operator(pg_catalog.||) $1)::interval
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- TIMESTAMPDIFF()
+-- Note that first parameter needs to be quoted in this version
 
 -- TIME_FORMAT()
 
 -- TIME_TO_SEC()
 CREATE OR REPLACE FUNCTION time_to_sec(interval)
-RETURNS integer AS $$
+RETURNS bigint AS $$
   SELECT (EXTRACT(HOURS FROM $1) * 3600
     + EXTRACT(MINUTES FROM $1) * 60
-    + EXTRACT(SECONDS FROM $1))::integer
+    + EXTRACT(SECONDS FROM $1))::bigint
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- TO_DAYS()
--- Haven't done integer variant
+-- XXX: Haven't done integer variant
 CREATE OR REPLACE FUNCTION to_days(date)
 RETURNS integer AS $$
   SELECT $1 - '0000-01-01'::date
@@ -364,27 +492,24 @@ RETURNS bigint AS $$
 $$ VOLATILE LANGUAGE SQL;
 
 -- XXX: This gives wrong answers? Time zones?
-CREATE OR REPLACE FUNCTION unix_timestamp(timestamp)
+CREATE OR REPLACE FUNCTION unix_timestamp(timestamp without time zone)
 RETURNS bigint AS $$
   SELECT EXTRACT(EPOCH FROM $1)::bigint
 $$ VOLATILE LANGUAGE SQL;
 
 -- UTC_DATE()
--- Haven't done integer variant
 CREATE OR REPLACE FUNCTION utc_date()
 RETURNS date AS $$
   SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date
 $$ VOLATILE LANGUAGE SQL;
 
 -- UTC_TIME()
--- Haven't done integer variant
 CREATE OR REPLACE FUNCTION utc_time()
 RETURNS time(0) AS $$
   SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::time(0)
 $$ VOLATILE LANGUAGE SQL;
 
 -- UTC_TIMESTAMP()
--- Haven't done integer variant
 CREATE OR REPLACE FUNCTION utc_timestamp()
 RETURNS timestamp(0) AS $$
   SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::timestamp(0)
@@ -404,14 +529,29 @@ RETURNS integer AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- WEEKOFYEAR()
+CREATE OR REPLACE FUNCTION weekofyear(date)
+RETURNS integer AS $$
+  SELECT EXTRACT(WEEK FROM $1)::integer
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- YEAR()
 CREATE OR REPLACE FUNCTION year(date)
 RETURNS integer AS $$
-  SELECT EXTRACT(YEAR FROM DATE($1))::integer
+  SELECT EXTRACT(YEAR FROM $1)::integer
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- YEARWEEK()
+-- XXX: THIS IS BROKEN
+CREATE OR REPLACE FUNCTION yearweek(date)
+RETURNS text AS $$
+  SELECT CASE
+    WHEN EXTRACT(WEEK FROM $1)::integer = 53 THEN
+      pg_catalog.lpad(EXTRACT(YEAR FROM $1) - 1, 4, '0') || '53'
+    ELSE
+      pg_catalog.lpad(EXTRACT(YEAR FROM $1) - 1, 4, '0')
+        || pg_catalog.lpad(EXTRACT(WEEK FROM $1), 2, '0')
+    END
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 /*
 

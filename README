@@ -122,6 +122,16 @@ This library uses the PostgreSQL interval type for many of the
 MySQL functions that require or return times.  In general
 this won't make any difference.
 
+* Intervals
+
+In MySQL, intervals are not quoated, eg:
+
+  SELECT ADDDATE('1998-01-02', INTERVAL 31 DAY);
+
+In PostgreSQL the 31 DAY part needs to be quoted:
+
+  SELECT ADDDATE('1998-01-02', INTERVAL '31 DAY');
+
 * Missing operators
 
 XOR, DIV and MOD named operators cannot be implemented.  Use
@@ -151,5 +161,8 @@ like all the other PostgreSQL string functions.
 * Failure to find overloaded functions
 
 In some cases (due to the way PostgreSQL works) you will need
-to add explicit casts to some function calls.
+to add explicit casts to some function calls.  An explicit cast
+looks like this:
+
+  SELECT ADDTIME('01:00:00.999999'::interval, '02:00:00.999998');
 
