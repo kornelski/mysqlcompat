@@ -137,20 +137,6 @@ In PostgreSQL the 31 DAY part needs to be quoted:
 XOR, DIV and MOD named operators cannot be implemented.  Use
 #, / (with integer casts) and % instead.
 
-* NULL handling in && and ||
-
-MySQL has very unusual NULL handling in its && and || operators.
-In this library, && and || follow the PostgreSQL way - which
-is that if either operand is NULL, then result is always NULL.
-
-This differs from the MySQL way which is:
-
-SELECT FALSE && NULL;
-=> FALSE
-
-SELECT TRUE || NULL;
-=> TRUE
-
 * Case-sensitive strings
 
 All PostgreSQL strings are case-sensitive.  All MySQL strings are
