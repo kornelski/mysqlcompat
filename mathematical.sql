@@ -65,23 +65,24 @@ DECLARE
 		3020668471, 3272380065, 1510334235, 755167117];
 	crc bigint := 4294967295; -- must use bigint, because we don't have
 							  -- an unsigned int32
-	len int;
-	data alias for $1;
-	tmp int;
-	pos int := 0;
-	c text;
+    len int;
+    data alias for $1;
+    tmp bigint;
+    pos int := 1;
+    c text;
+    d bigint;
 begin
-	len = length(data);
-	while len >= pos loop
+    len = length(data);
+    while len >= pos loop
         c := substring(data from pos for 1);
         d := pg_catalog.ascii(c);
         pos = pos + 1;
         tmp = (crc operator(pg_catalog.#) d) operator(pg_catalog.&) 255;
-        crc = crc_lu[tmp + 1] operator(pg_catalog.#) 
-			(crc operator(pg_catalog.>>) 8);
-	end loop;
+        crc = crc_lu[tmp + 1] operator(pg_catalog.#)
+            (crc operator(pg_catalog.>>) 8);
+    end loop;
     crc = crc operator(pg_catalog.#) 4294967295;
-	return crc;
+    return crc;
 end;$$
 IMMUTABLE STRICT LANGUAGE plpgsql;
 
