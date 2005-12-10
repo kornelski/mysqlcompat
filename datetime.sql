@@ -58,50 +58,68 @@ RETURNS timestamp without time zone AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- DATE_FORMAT()
--- XXX: TODO
--- Will make errors with strings like '%%y'
--- Not implemented week of year
-CREATE OR REPLACE FUNCTION date_format(timestamp, text)
+-- Note: Doesn't handle weeks of years yet
+CREATE OR REPLACE FUNCTION date_format(timestamp without time zone, text)
 RETURNS text AS $$
-  SELECT pg_catalog.to_char($1,
-    pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(
-    pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(
-    pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(
-    pg_catalog.replace(pg_catalog.replace($2, 
-      '%a', 'Dy'), 
-      '%b', 'Mon'), 
-      '%c', 'FMMM'), 
-      '%D', 'FMDDth'), 
-      '%d', 'DD'), 
-      '%e', 'FMDD'), 
-      '%f', 'US'), 
-      '%H', 'HH24'), 
-      '%h', 'HH12'), 
-      '%I', 'HH12'),      
-      '%i', 'MI'), 
-      '%j', 'DDD'), 
-      '%k', 'FMHH24'), 
-      '%l', 'FMHH12'), 
-      '%M', 'FMMonth'), 
-      '%m', 'MM'), 
-      '%p', 'AM'), 
-      '%r', 'HH12:MI:SS AM'), 
-      '%S', 'SS'),
-      '%s', 'SS'),
-      '%T', 'HH24:MI:SS'), 
-      '%U', '?'),
-      '%u', '?'), 
-      '%V', '?'), 
-      '%v', '?'), 
-      '%W', 'FMDay'), 
-      '%w', EXTRACT(DOW FROM $1)), 
-      '%X', '?'), 
-      '%x', '?'), 
-      '%Y', 'YYYY'), 
-      '%y', 'YY'),
-      '%%', '%')
-  )
-$$ IMMUTABLE STRICT LANGUAGE SQL;
+  DECLARE
+    i int := 1;
+    temp text := '';
+    c text;
+    n text;
+    res text;
+  BEGIN
+    WHILE i <= pg_catalog.length($2) LOOP
+      -- Look at current character
+      c := SUBSTRING ($2 FROM i FOR 1);
+      -- If it's a '%' and not the last character then process it as a placeholder
+      IF c = '%' AND i != pg_catalog.length($2) THEN
+        n := SUBSTRING ($2 FROM (i + 1) FOR 1);
+        SELECT INTO res CASE
+          WHEN n = 'a' THEN pg_catalog.to_char($1, 'Dy') 
+          WHEN n = 'b' THEN pg_catalog.to_char($1, 'Mon') 
+          WHEN n = 'c' THEN pg_catalog.to_char($1, 'FMMM') 
+          WHEN n = 'D' THEN pg_catalog.to_char($1, 'FMDDth') 
+          WHEN n = 'd' THEN pg_catalog.to_char($1, 'DD') 
+          WHEN n = 'e' THEN pg_catalog.to_char($1, 'FMDD') 
+          WHEN n = 'f' THEN pg_catalog.to_char($1, 'US') 
+          WHEN n = 'H' THEN pg_catalog.to_char($1, 'HH24') 
+          WHEN n = 'h' THEN pg_catalog.to_char($1, 'HH12') 
+          WHEN n = 'I' THEN pg_catalog.to_char($1, 'HH12')      
+          WHEN n = 'i' THEN pg_catalog.to_char($1, 'MI') 
+          WHEN n = 'j' THEN pg_catalog.to_char($1, 'DDD') 
+          WHEN n = 'k' THEN pg_catalog.to_char($1, 'FMHH24') 
+          WHEN n = 'l' THEN pg_catalog.to_char($1, 'FMHH12') 
+          WHEN n = 'M' THEN pg_catalog.to_char($1, 'FMMonth') 
+          WHEN n = 'm' THEN pg_catalog.to_char($1, 'MM') 
+          WHEN n = 'p' THEN pg_catalog.to_char($1, 'AM') 
+          WHEN n = 'r' THEN pg_catalog.to_char($1, 'HH12:MI:SS AM') 
+          WHEN n = 'S' THEN pg_catalog.to_char($1, 'SS')
+          WHEN n = 's' THEN pg_catalog.to_char($1, 'SS')
+          WHEN n = 'T' THEN pg_catalog.to_char($1, 'HH24:MI:SS') 
+          WHEN n = 'U' THEN pg_catalog.to_char($1, '?')
+          WHEN n = 'u' THEN pg_catalog.to_char($1, '?') 
+          WHEN n = 'V' THEN pg_catalog.to_char($1, '?') 
+          WHEN n = 'v' THEN pg_catalog.to_char($1, '?') 
+          WHEN n = 'W' THEN pg_catalog.to_char($1, 'FMDay') 
+          WHEN n = 'w' THEN EXTRACT(DOW FROM $1)::text
+          WHEN n = 'X' THEN pg_catalog.to_char($1, '?') 
+          WHEN n = 'x' THEN pg_catalog.to_char($1, '?') 
+          WHEN n = 'Y' THEN pg_catalog.to_char($1, 'YYYY') 
+          WHEN n = 'y' THEN pg_catalog.to_char($1, 'YY')
+          WHEN n = '%' THEN pg_catalog.to_char($1, '%')
+          ELSE NULL
+        END;
+        temp := temp operator(pg_catalog.||) res;
+        i := i + 2;
+      ELSE
+        -- Otherwise just append the character to the string
+        temp = temp operator(pg_catalog.||) c;
+        i := i + 1;
+      END IF; 
+    END LOOP;
+    RETURN temp;
+  END
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
 
 -- DATE_SUB()
 CREATE OR REPLACE FUNCTION date_sub(timestamp without time zone, interval)
@@ -367,48 +385,68 @@ RETURNS interval AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- STR_TO_DATE()
--- XXX: DOESN'T WORK YET
+-- Note: Doesn't handle weeks of years yet and will return different results
+-- to MySQL if you pass in an invalid timestamp
 CREATE OR REPLACE FUNCTION str_to_date(text, text)
 RETURNS timestamp without time zone AS $$
-  SELECT pg_catalog.to_timestamp($1,
-    pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(
-    pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(
-    pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(
-    pg_catalog.replace(pg_catalog.replace($2, 
-      '%a', 'Dy'), 
-      '%b', 'Mon'), 
-      '%c', 'FMMM'), 
-      '%D', 'FMDDth'), 
-      '%d', 'DD'), 
-      '%e', 'FMDD'), 
-      '%f', 'US'), 
-      '%H', 'HH24'), 
-      '%h', 'HH12'), 
-      '%I', 'HH12'),      
-      '%i', 'MI'), 
-      '%j', 'DDD'), 
-      '%k', 'FMHH24'), 
-      '%l', 'FMHH12'), 
-      '%M', 'FMMonth'), 
-      '%m', 'MM'), 
-      '%p', 'AM'), 
-      '%r', 'HH12:MI:SS AM'), 
-      '%S', 'SS'),
-      '%s', 'SS'),
-      '%T', 'HH24:MI:SS'), 
-      '%U', '?'),
-      '%u', '?'), 
-      '%V', '?'), 
-      '%v', '?'), 
-      '%W', 'FMDay'), 
-      '%w', '?'), 
-      '%X', '?'), 
-      '%x', '?'), 
-      '%Y', 'YYYY'), 
-      '%y', 'YY'),
-      '%%', '%')
-  )::timestamp without time zone
-$$ IMMUTABLE STRICT LANGUAGE SQL;
+  DECLARE
+    i int := 1;
+    temp text := '';
+    c text;
+    n text; res text;
+  BEGIN
+    WHILE i <= pg_catalog.length($2) LOOP
+      -- Look at current character
+      c := SUBSTRING ($2 FROM i FOR 1);
+      -- If it's a '%' and not the last character then process it as a placeholder
+      IF c = '%' AND i != pg_catalog.length($2) THEN
+        n := SUBSTRING ($2 FROM (i + 1) FOR 1);
+        SELECT INTO res CASE
+          WHEN n = 'a' THEN 'Dy' 
+          WHEN n = 'b' THEN 'Mon' 
+          WHEN n = 'c' THEN 'FMMM' 
+          WHEN n = 'D' THEN 'FMDDth' 
+          WHEN n = 'd' THEN 'DD' 
+          WHEN n = 'e' THEN 'FMDD' 
+          WHEN n = 'f' THEN 'US' 
+          WHEN n = 'H' THEN 'HH24' 
+          WHEN n = 'h' THEN 'HH12' 
+          WHEN n = 'I' THEN 'HH12'      
+          WHEN n = 'i' THEN 'MI' 
+          WHEN n = 'j' THEN 'DDD' 
+          WHEN n = 'k' THEN 'FMHH24' 
+          WHEN n = 'l' THEN 'FMHH12' 
+          WHEN n = 'M' THEN 'FMMonth' 
+          WHEN n = 'm' THEN 'MM' 
+          WHEN n = 'p' THEN 'AM' 
+          WHEN n = 'r' THEN 'HH12:MI:SS AM' 
+          WHEN n = 'S' THEN 'SS'
+          WHEN n = 's' THEN 'SS'
+          WHEN n = 'T' THEN 'HH24:MI:SS' 
+          WHEN n = 'U' THEN '?'
+          WHEN n = 'u' THEN '?' 
+          WHEN n = 'V' THEN '?' 
+          WHEN n = 'v' THEN '?' 
+          WHEN n = 'W' THEN 'FMDay' 
+          WHEN n = 'w' THEN '?'
+          WHEN n = 'X' THEN '?' 
+          WHEN n = 'x' THEN '?' 
+          WHEN n = 'Y' THEN 'YYYY' 
+          WHEN n = 'y' THEN 'YY'
+          WHEN n = '%' THEN '%'
+          ELSE NULL
+        END;
+        temp := temp operator(pg_catalog.||) res;
+        i := i + 2;
+      ELSE
+        -- Otherwise just append the character to the string
+        temp = temp operator(pg_catalog.||) c;
+        i := i + 1;
+      END IF; 
+    END LOOP;
+    RETURN pg_catalog.to_timestamp($1, temp)::timestamp without time zone;
+  END
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
 
 -- SUBDATE()
 -- Note: passing in the interval is different
@@ -469,6 +507,71 @@ $$ IMMUTABLE STRICT LANGUAGE SQL;
 -- Note that first parameter needs to be quoted in this version
 
 -- TIME_FORMAT()
+CREATE OR REPLACE FUNCTION time_format(interval, text)
+RETURNS text AS $$
+  DECLARE
+    i int := 1;
+    temp text := '';
+    c text;
+    n text;
+    res text;
+  BEGIN
+    WHILE i <= pg_catalog.length($2) LOOP
+      -- Look at current character
+      c := SUBSTRING ($2 FROM i FOR 1);
+      -- If it's a '%' and not the last character then process it as a placeholder
+      IF c = '%' AND i != pg_catalog.length($2) THEN
+        n := SUBSTRING ($2 FROM (i + 1) FOR 1);
+        SELECT INTO res CASE
+          WHEN n = 'a' THEN '0'
+          WHEN n = 'b' THEN '0'
+          WHEN n = 'c' THEN '0'
+          WHEN n = 'D' THEN '0'
+          WHEN n = 'd' THEN '0'
+          WHEN n = 'e' THEN '0'
+          WHEN n = 'f' THEN pg_catalog.to_char($1, 'US') 
+          WHEN n = 'H' THEN pg_catalog.to_char($1, 'HH24') 
+          WHEN n = 'h' THEN pg_catalog.lpad(pg_catalog.to_char($1, 'HH12')::integer % 12, 2, '0')
+          WHEN n = 'I' THEN pg_catalog.lpad(pg_catalog.to_char($1, 'HH12')::integer % 12, 2, '0')
+          WHEN n = 'i' THEN pg_catalog.to_char($1, 'MI') 
+          WHEN n = 'j' THEN '0'
+          WHEN n = 'k' THEN pg_catalog.to_char($1, 'FMHH24') 
+          WHEN n = 'l' THEN (pg_catalog.to_char($1, 'FMHH12')::integer % 12)::text
+          WHEN n = 'M' THEN '0'
+          WHEN n = 'm' THEN '0'
+          WHEN n = 'p' THEN pg_catalog.to_char($1, 'AM') 
+          WHEN n = 'r' THEN pg_catalog.lpad(pg_catalog.to_char($1, 'HH12')::integer % 12, 2, '0') 
+                              operator(pg_catalog.||) 
+                              pg_catalog.to_char($1, ':MI:SS ') 
+                              operator(pg_catalog.||) 
+                              CASE WHEN pg_catalog.to_char($1, 'FMHH24')::integer <= 11 THEN 'AM' ELSE 'PM' END
+          WHEN n = 'S' THEN pg_catalog.to_char($1, 'SS')
+          WHEN n = 's' THEN pg_catalog.to_char($1, 'SS')
+          WHEN n = 'T' THEN pg_catalog.to_char($1, 'HH24:MI:SS') 
+          WHEN n = 'U' THEN '0'
+          WHEN n = 'u' THEN '0'
+          WHEN n = 'V' THEN '0'
+          WHEN n = 'v' THEN '0'
+          WHEN n = 'W' THEN '0'
+          WHEN n = 'w' THEN '0'
+          WHEN n = 'X' THEN '0'
+          WHEN n = 'x' THEN '0'
+          WHEN n = 'Y' THEN '0'
+          WHEN n = 'y' THEN '0'
+          WHEN n = '%' THEN pg_catalog.to_char($1, '%')
+          ELSE NULL
+        END;
+        temp := temp operator(pg_catalog.||) res;
+        i := i + 2;
+      ELSE
+        -- Otherwise just append the character to the string
+        temp = temp operator(pg_catalog.||) c;
+        i := i + 1;
+      END IF; 
+    END LOOP;
+    RETURN temp;
+  END
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
 
 -- TIME_TO_SEC()
 CREATE OR REPLACE FUNCTION time_to_sec(interval)
@@ -516,6 +619,7 @@ RETURNS timestamp(0) AS $$
 $$ VOLATILE LANGUAGE SQL;
 
 -- WEEK()
+-- Not implemented
 
 -- WEEKDAY()
 CREATE OR REPLACE FUNCTION weekday(date)
@@ -553,29 +657,3 @@ RETURNS text AS $$
     END
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
-/*
-
-set check_function_bodies = false;
-
--- dff(format) - return the to_char format for a %-spec
-create function dff(text) returns text language sql
- as $f$ select case when $1 = '%' then '%'
-                    when $1 = 'Y' then 'YYYY'
-                    when $1 = 'm' then 'MM'
-                    when $1 = 'd' then 'DD'
-                    else '' end $f$;
- 
--- df2(time,prefix,format,suffix)
-create function df2(timestamptz,text,text,text) returns text language sql
- as $f$ select case when $1 is null then null
-                    when $2 is null then null
-                    when $3 is null then $2
-                    when $4 is null then $2
-                    else $2 operator(pg_catalog.||) to_char($1,dff($3)) operator(pg_catalog.||) date_format($1,$4) end $f$;
- 
-create or replace function date_format(timestamptz,text) returns text language sql
- as $f$ select df2($1,
-                   substring($2 from '^(.*?)(?:%[%A-Za-z].*)?$'),
-                   substring($2 from '^(?:.*?)(?:%([%A-Za-z]).*)$'),
-                   substring($2 from '^(?:.*?)(?:%[%A-Za-z](.*))$')) $f$;
-*/

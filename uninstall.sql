@@ -26,6 +26,7 @@ DROP FUNCTION timestampadd(text, integer, timestamp without time zone);
 DROP FUNCTION timediff(time without time zone, time without time zone);
 DROP FUNCTION timediff(timestamp without time zone, timestamp without time zone);
 DROP FUNCTION time_to_sec(interval);
+DROP FUNCTION time_format(interval, text);
 DROP FUNCTION system_user();
 DROP FUNCTION sysdate();
 DROP FUNCTION subtime(interval, interval);
