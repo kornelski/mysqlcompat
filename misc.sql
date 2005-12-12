@@ -1,7 +1,5 @@
 -- INET_ATON()
 -- Credit: Michael Fuhr
--- Note: doesn't support short addresses, eg '127.1'
--- Note: doesn't support IPv6
 CREATE OR REPLACE FUNCTION inet_aton(text)
 RETURNS bigint AS $$
   DECLARE
@@ -50,13 +48,12 @@ $$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
 
 -- INET_NTOA()
 -- done in SQL to take advantage of inlining
-
 CREATE OR REPLACE FUNCTION inet_ntoa(bigint)
 RETURNS text AS $$
 SELECT CASE WHEN $1 > 4294967295 THEN NULL ELSE
-    ((($1::bigint >> 24) % 256) + 256) % 256 || '.' ||
-    ((($1::bigint >> 16) % 256) + 256) % 256 || '.' ||
-    ((($1::bigint >>  8) % 256) + 256) % 256 || '.' ||
+    ((($1::bigint >> 24) % 256) + 256) % 256 operator(pg_catalog.||) '.' operator(pg_catalog.||)
+    ((($1::bigint >> 16) % 256) + 256) % 256 operator(pg_catalog.||) '.' operator(pg_catalog.||)
+    ((($1::bigint >>  8) % 256) + 256) % 256 operator(pg_catalog.||) '.' operator(pg_catalog.||)
     ((($1::bigint      ) % 256) + 256) % 256 END;
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
