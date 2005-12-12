@@ -1,45 +1,64 @@
 -- INET_ATON()
 -- Credit: Michael Fuhr
 -- Note: doesn't support short addresses, eg '127.1'
-CREATE OR REPLACE FUNCTION inet_aton(inet)
+-- Note: doesn't support IPv6
+CREATE OR REPLACE FUNCTION inet_aton(text)
 RETURNS bigint AS $$
   DECLARE
       a text[];
+      b text[4];
+      up int;
+      family int;
+      i int;
   BEGIN
-      IF pg_catalog.family($1) <> 4 THEN
-          RETURN NULL;
+      IF position(':' in $1) > 0 THEN
+        family = 6;
+      ELSE
+        family = 4;
       END IF;
-  
-      a := pg_catalog.string_to_array(host($1), '.');
-  
-      RETURN (a[1]::bigint << 24) |
-             (a[2]::bigint << 16) |
-             (a[3]::bigint << 8) |
-             a[4]::bigint;
+      -- mysql doesn't support IPv6 yet, it seems
+      IF family = 6 THEN
+        RETURN NULL;
+      END IF;
+      a = pg_catalog.string_to_array($1, '.');
+      up = array_upper(a, 1);
+      IF up = 4 THEN
+        -- nothing to do
+        b = a;
+      ELSIF up = 3 THEN
+        -- 127.1.2 = 127.1.0.2
+        b = array[a[1], a[2], '0', a[3]];
+      ELSIF up = 2 THEN
+        -- 127.1 = 127.0.0.1
+        b = array[a[1], '0', '0', a[2]];
+      ELSIF up = 1 THEN
+        -- 127 = 0.0.0.127
+        b = array['0', '0', '0', a[1]];
+      END IF;
+      i = 1;
+      -- handle 127..1
+      WHILE i <= 4 LOOP
+        IF length(b[i]) = 0 THEN
+          b[i] = '0';
+        END IF;
+        i = i + 1;
+      END LOOP;
+      RETURN (b[1]::bigint << 24) | (b[2]::bigint << 16) |
+              (b[3]::bigint << 8) | b[4]::bigint;
   END
 $$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
 
 -- INET_NTOA()
--- Credit: Tom Lane
+-- done in SQL to take advantage of inlining
+
 CREATE OR REPLACE FUNCTION inet_ntoa(bigint)
 RETURNS text AS $$
-  DECLARE 
-    oct1 int;
-    oct2 int;
-    oct3 int;
-    oct4 int;
-  BEGIN
-    IF $1 > 4294967295 THEN
-      RETURN NULL;
-    END IF;
-
-    oct1 := ((($1 >> 24) % 256) + 256) % 256;
-    oct2 := ((($1 >> 16) % 256) + 256) % 256;
-    oct3 := ((($1 >>  8) % 256) + 256) % 256;
-    oct4 := ((($1      ) % 256) + 256) % 256;
-    RETURN oct1 || '.' || oct2 || '.' || oct3 || '.' || oct4;
-  END
-$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+SELECT CASE WHEN $1 > 4294967295 THEN NULL ELSE
+    ((($1::bigint >> 24) % 256) + 256) % 256 || '.' ||
+    ((($1::bigint >> 16) % 256) + 256) % 256 || '.' ||
+    ((($1::bigint >>  8) % 256) + 256) % 256 || '.' ||
+    ((($1::bigint      ) % 256) + 256) % 256 END;
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- SLEEP()
 CREATE OR REPLACE FUNCTION sleep(float)

@@ -70,7 +70,7 @@ DROP FUNCTION last_day(timestamp without time zone);
 DROP FUNCTION instr(text, text);
 DROP FUNCTION "insert"(text, integer, integer, text);
 DROP FUNCTION inet_ntoa(bigint);
-DROP FUNCTION inet_aton(inet);
+DROP FUNCTION inet_aton(text);
 DROP FUNCTION ifnull(anyelement, anyelement);
 DROP FUNCTION if(boolean, anyelement, anyelement);
 DROP FUNCTION "hour"(interval);
