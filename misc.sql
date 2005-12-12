@@ -61,9 +61,11 @@ $$ IMMUTABLE STRICT LANGUAGE SQL;
 CREATE OR REPLACE FUNCTION sleep(float)
 RETURNS integer AS $$
   BEGIN
-    WHILE pg_catalog.timeofday()::timestamp < (current_timestamp + interval '1 second' * $1) LOOP
+    IF $1 > 0 THEN
+      WHILE pg_catalog.timeofday()::timestamp < (current_timestamp + interval '1 second' * $1) LOOP
       -- Do nothing
-    END LOOP;
+      END LOOP;
+    END IF;
     RETURN 0;
   END
 $$ STRICT VOLATILE LANGUAGE PLPGSQL;
