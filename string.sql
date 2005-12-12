@@ -327,6 +327,350 @@ $$ IMMUTABLE STRICT LANGUAGE SQL;
 -- MAKE_SET()
 -- Not implemented
 
+-- routine to make make_set() easier
+-- note: since arrays do not support NULLs until
+CREATE OR REPLACE FUNCTION _make_set(bigint, text[])
+RETURNS text AS $$
+  DECLARE
+    up int;
+    i int = 1;
+    ret text = '';
+    dat ALIAS FOR $2;
+    found bool = false;
+    mask bigint = 1;
+  BEGIN
+    up = array_upper($2, 1);
+    IF up > 31 THEN
+      RAISE EXCEPTION 'maximum array size exceeded';
+      RETURN NULL;
+    END IF;
+    WHILE i <= up LOOP
+      IF $1 & mask <> 0 THEN
+        IF found = false THEN
+          found = true;
+        ELSE
+          ret = ret operator(pg_catalog.||) ',';
+        END IF;
+        ret = ret operator(pg_catalog.||) dat[i];
+      END IF;
+      i = i + 1;
+      mask = mask << 1;
+    END LOOP;
+    RETURN ret;
+  END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION make_set(bigint, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text)
+RETURNS text AS $$
+  DECLARE
+    a text[];
+  BEGIN
+    a = ARRAY[$2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32];
+RETURN _make_set($1, a);
+END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
 -- MID()
 CREATE OR REPLACE FUNCTION mid(text, integer, integer)
 RETURNS text AS $$

@@ -17,6 +17,11 @@ to install the complete compatibility environment.
 This can be an immense time-saver when porting large applications
 that rely heavily on certain MySQL functions.
 
+Versions of PostgreSQL supported
+--------------------------------
+
+This package has been tested on PostgreSQL 8.1.x.
+
 Installation
 ------------
 
@@ -124,7 +129,7 @@ this won't make any difference.
 
 * Intervals
 
-In MySQL, intervals are not quoated, eg:
+In MySQL, intervals are not quoted, eg:
 
   SELECT ADDDATE('1998-01-02', INTERVAL 31 DAY);
 
@@ -141,7 +146,7 @@ XOR, DIV and MOD named operators cannot be implemented.  Use
 
 All PostgreSQL strings are case-sensitive.  All MySQL strings are
 case-insensitive by default.  Any functions in this library that
-implement string comparision use CASE-SENSITIVE comparison, just
+implement string comparison use CASE-SENSITIVE comparison, just
 like all the other PostgreSQL string functions.
 
 * Failure to find overloaded functions
