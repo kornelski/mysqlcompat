@@ -325,7 +325,7 @@ RETURNS integer AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- MAKE_SET()
--- Note implemented
+-- Not implemented
 
 -- MID()
 CREATE OR REPLACE FUNCTION mid(text, integer, integer)
@@ -339,6 +339,9 @@ CREATE OR REPLACE FUNCTION oct(integer)
 RETURNS text AS $$
   SELECT conv($1, 10, 8)
 $$ IMMUTABLE STRICT LANGUAGE SQL;
+
+-- OCTET_LENGTH()
+-- not reimplemented
 
 -- ORD()
 -- Note: Does not support multibyte
