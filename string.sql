@@ -325,10 +325,11 @@ RETURNS integer AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- MAKE_SET()
--- Not implemented
-
 -- routine to make make_set() easier
--- note: since arrays do not support NULLs until
+-- note: since arrays do not support NULLs until 8.2, we cannot
+-- handle NULL arguments to make_set()
+-- note: we only support 32 arguments to make_set() as PostgreSQL
+-- does not support arbitary argument lists
 CREATE OR REPLACE FUNCTION _make_set(bigint, text[])
 RETURNS text AS $$
   DECLARE
