@@ -19,6 +19,7 @@ DROP FUNCTION week(date, integer);
 DROP FUNCTION _calc_week(date, integer);
 DROP FUNCTION _calc_days_in_year(integer);
 DROP FUNCTION _calc_weekday(date, boolean);
+DROP FUNCTION _week_mode(integer);
 DROP FUNCTION utc_timestamp();
 DROP FUNCTION utc_time();
 DROP FUNCTION utc_date();
