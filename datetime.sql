@@ -58,7 +58,6 @@ RETURNS timestamp without time zone AS $$
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- DATE_FORMAT()
--- Note: Doesn't handle weeks of years yet
 CREATE OR REPLACE FUNCTION date_format(timestamp without time zone, text)
 RETURNS text AS $$
   DECLARE
@@ -96,14 +95,14 @@ RETURNS text AS $$
           WHEN n = 'S' THEN pg_catalog.to_char($1, 'SS')
           WHEN n = 's' THEN pg_catalog.to_char($1, 'SS')
           WHEN n = 'T' THEN pg_catalog.to_char($1, 'HH24:MI:SS') 
-          WHEN n = 'U' THEN pg_catalog.to_char($1, '?')
-          WHEN n = 'u' THEN pg_catalog.to_char($1, '?') 
-          WHEN n = 'V' THEN pg_catalog.to_char($1, '?') 
-          WHEN n = 'v' THEN pg_catalog.to_char($1, '?') 
+          WHEN n = 'U' THEN pg_catalog.lpad(week($1::date, 0)::text, 2, '0')
+          WHEN n = 'u' THEN pg_catalog.lpad(week($1::date, 1)::text, 2, '0')
+          WHEN n = 'V' THEN pg_catalog.lpad(week($1::date, 2)::text, 2, '0')
+          WHEN n = 'v' THEN pg_catalog.lpad(week($1::date, 3)::text, 2, '0')
           WHEN n = 'W' THEN pg_catalog.to_char($1, 'FMDay') 
           WHEN n = 'w' THEN EXTRACT(DOW FROM $1)::text
-          WHEN n = 'X' THEN pg_catalog.to_char($1, '?') 
-          WHEN n = 'x' THEN pg_catalog.to_char($1, '?') 
+          WHEN n = 'X' THEN pg_catalog.lpad(((_calc_week($1::date, _week_mode(2)))[2])::text, 4, '0')
+          WHEN n = 'x' THEN pg_catalog.lpad(((_calc_week($1::date, _week_mode(3)))[2])::text, 4, '0')
           WHEN n = 'Y' THEN pg_catalog.to_char($1, 'YYYY') 
           WHEN n = 'y' THEN pg_catalog.to_char($1, 'YY')
           WHEN n = '%' THEN pg_catalog.to_char($1, '%')
@@ -424,9 +423,9 @@ RETURNS timestamp without time zone AS $$
           WHEN n = 's' THEN 'SS'
           WHEN n = 'T' THEN 'HH24:MI:SS' 
           WHEN n = 'U' THEN '?'
-          WHEN n = 'u' THEN '?' 
-          WHEN n = 'V' THEN '?' 
-          WHEN n = 'v' THEN '?' 
+          WHEN n = 'u' THEN '?'
+          WHEN n = 'V' THEN '?'
+          WHEN n = 'v' THEN '?'
           WHEN n = 'W' THEN 'FMDay' 
           WHEN n = 'w' THEN '?'
           WHEN n = 'X' THEN '?' 
@@ -619,7 +618,120 @@ RETURNS timestamp(0) AS $$
 $$ VOLATILE LANGUAGE SQL;
 
 -- WEEK()
--- Not implemented
+CREATE OR REPLACE FUNCTION _week_mode(mode integer)
+RETURNS integer AS $$
+  DECLARE
+    _WEEK_MONDAY_FIRST  CONSTANT integer := 1;
+    _WEEK_FIRST_WEEKDAY CONSTANT integer := 4;
+    week_format integer := mode & 7;
+  BEGIN
+    IF (week_format & _WEEK_MONDAY_FIRST) = 0 THEN
+      week_format := week_format # _WEEK_FIRST_WEEKDAY;
+    END IF;
+
+    RETURN week_format;
+  END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION _calc_weekday(qdate date, sundayfirst boolean)
+RETURNS integer AS $$
+  BEGIN
+    RETURN (EXTRACT(DOW FROM qdate)::integer + CASE WHEN sundayfirst THEN 0 ELSE 6 END) % 7;
+  END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION _calc_days_in_year(year integer)
+RETURNS integer AS $$
+  BEGIN
+    IF (year & 3) = 0 AND ((year % 100) <> 0 OR (year % 400) = 0 AND year <> 0) THEN
+      RETURN 366;
+    ELSE
+      RETURN 365;
+    END IF;
+  END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION _calc_week(qdate date, behavior integer)
+RETURNS integer[] AS $$
+  DECLARE
+    _WEEK_MONDAY_FIRST  CONSTANT integer := 1;
+    _WEEK_YEAR          CONSTANT integer := 2;
+    _WEEK_FIRST_WEEKDAY CONSTANT integer := 4;
+    qyear         integer := EXTRACT(YEAR FROM qdate);
+    qmonth        integer := EXTRACT(MONTH FROM qdate);
+    qday          integer := EXTRACT(DAY FROM qdate);
+    daynr         integer := EXTRACT(DOY FROM qdate);
+    yday1         date    := pg_catalog.date_trunc('year', qdate);
+    first_daynr   integer := 1;
+    monday_first  boolean := (behavior & _WEEK_MONDAY_FIRST) <> 0;
+    week_year     boolean := (behavior & _WEEK_YEAR) <> 0;
+    first_weekday boolean := (behavior & _WEEK_FIRST_WEEKDAY) <> 0;
+    weekday       integer := _calc_weekday(yday1, NOT monday_first);
+    days          integer;
+  BEGIN
+    IF qmonth = 1 AND qday <= 7 - weekday THEN
+      IF (NOT week_year) AND ((first_weekday AND weekday <> 0) OR (NOT first_weekday AND weekday >= 4)) THEN
+        RETURN array[0, qyear];
+      END IF;
+
+      week_year := true;
+      qyear := qyear - 1;
+      days := _calc_days_in_year(qyear);
+      first_daynr := first_daynr - days;
+      weekday := (weekday + 53 * 7 - days) % 7;
+    END IF;
+
+    IF (first_weekday AND weekday <> 0) OR (NOT first_weekday AND weekday >= 4) THEN
+      days := daynr - (first_daynr + (7 - weekday));
+    ELSE
+      days := daynr - (first_daynr - weekday);
+    END IF;
+
+    IF week_year AND days >= 52 * 7 THEN
+      weekday := (weekday + _calc_days_in_year(qyear)) % 7;
+      IF (NOT first_weekday AND weekday < 4) OR (first_weekday AND weekday = 0) THEN
+	qyear := qyear + 1;
+        RETURN array[1, qyear];
+      END IF;
+    END IF;
+
+    RETURN array[days / 7 + 1, qyear];
+  END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION week(date, integer)
+RETURNS integer AS $$
+  SELECT (_calc_week($1, _week_mode($2)))[1];
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION week(date)
+RETURNS integer AS $$
+  SELECT week($1, 0);
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+-- WEEKOFYEAR()
+CREATE OR REPLACE FUNCTION weekofyear(date)
+RETURNS integer AS $$
+  SELECT week($1, 3);
+$$ IMMUTABLE STRICT LANGUAGE SQL;
+
+-- YEARWEEK()
+CREATE OR REPLACE FUNCTION yearweek(qdate date, mode integer)
+RETURNS integer AS $$
+  DECLARE
+    _WEEK_YEAR CONSTANT integer := 2;
+    a integer[] := _calc_week(qdate, _week_mode(mode | _WEEK_YEAR));
+    week integer := a[1];
+    year integer := a[2];
+  BEGIN
+    RETURN week + year * 100;
+  END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
+CREATE OR REPLACE FUNCTION yearweek(date)
+RETURNS integer AS $$
+  SELECT yearweek($1, 0);
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- WEEKDAY()
 CREATE OR REPLACE FUNCTION weekday(date)
@@ -632,28 +744,8 @@ RETURNS integer AS $$
     END
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
--- WEEKOFYEAR()
-CREATE OR REPLACE FUNCTION weekofyear(date)
-RETURNS integer AS $$
-  SELECT EXTRACT(WEEK FROM $1)::integer
-$$ IMMUTABLE STRICT LANGUAGE SQL;
-
 -- YEAR()
 CREATE OR REPLACE FUNCTION year(date)
 RETURNS integer AS $$
   SELECT EXTRACT(YEAR FROM $1)::integer
 $$ IMMUTABLE STRICT LANGUAGE SQL;
-
--- YEARWEEK()
--- XXX: THIS IS BROKEN
-CREATE OR REPLACE FUNCTION yearweek(date)
-RETURNS text AS $$
-  SELECT CASE
-    WHEN EXTRACT(WEEK FROM $1)::integer = 53 THEN
-      pg_catalog.lpad(EXTRACT(YEAR FROM $1) - 1, 4, '0') || '53'
-    ELSE
-      pg_catalog.lpad(EXTRACT(YEAR FROM $1) - 1, 4, '0')
-        || pg_catalog.lpad(EXTRACT(WEEK FROM $1), 2, '0')
-    END
-$$ IMMUTABLE STRICT LANGUAGE SQL;
-
