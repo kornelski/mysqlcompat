@@ -79,6 +79,64 @@ language plpgsql
 RETURNS NULL ON NULL INPUT
 IMMUTABLE;
 
+create or replace function conv(int, int, int)
+returns text as
+$$
+declare
+    res text := '';
+    hex text := '0123456789ABCDEFGHIJLMNOPQRSTUVWXYZ';
+    num int;
+    tmp int;
+    tmp2 text;
+    numin text;
+    tobase int;
+    isneg bool := false;
+    numin_p ALIAS FOR $1;
+    frombase ALIAS FOR $2;
+    tobase_p ALIAS FOR $3;
+begin
+    if numin_p < 0 and tobase_p < 0 then
+      isneg := true;
+      numin := numin_p::integer * -1;
+      tobase := tobase_p * -1;
+    else
+      numin := numin_p;
+      tobase := tobase_p;
+    end if;
+
+    if numin isnull OR frombase isnull OR tobase ISNULL then
+        return NULL;
+    elsif frombase < 0 OR frombase > 36 then
+        return NULL;
+    elsif tobase < 0 OR tobase > 36 then
+        return NULL;
+    end if;
+ 
+    if frombase <> 10 then
+        num := _todec(numin, frombase);
+    else
+        num := numin::int;
+    end if;
+ 
+    loop
+        tmp := num % tobase + 1;
+        res := substring( hex from tmp for 1 ) operator(pg_catalog.||) res;
+        num := num/tobase;
+        if num = 0 then
+            exit;
+        end if;
+    end loop;
+    if isneg then
+        return '-' operator(pg_catalog.||) res;
+    else
+        return res;
+    end if;
+end
+$$
+language plpgsql
+RETURNS NULL ON NULL INPUT
+IMMUTABLE;
+ 
 create or replace function conv(text, int, int)
 returns text as
 $$
@@ -95,7 +153,7 @@ declare
     frombase ALIAS FOR $2;
     tobase_p ALIAS FOR $3;
 begin
-    if numin_p < '0' and tobase_p < '0' then
+    if numin_p < '0' and tobase_p < 0 then
       isneg := true;
       numin := numin_p::integer * -1;
       tobase := tobase_p * -1;
