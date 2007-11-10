@@ -189,7 +189,7 @@ $$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
 -- XXX: WILL fail if $2 is '0'
 CREATE OR REPLACE FUNCTION export_set(bigint, text, text, text, integer)
 RETURNS text AS $$
-  SELECT pg_catalog.rtrim(pg_catalog.replace(pg_catalog.replace(reverse(pg_catalog.lpad(bin($1), $5, '0')), 1, $2 operator(pg_catalog.||) $4), 0, $3 operator(pg_catalog.||) $4), $4)
+  SELECT pg_catalog.rtrim(pg_catalog.replace(pg_catalog.replace(reverse(pg_catalog.lpad(bin($1), $5, '0')), '1', $2 operator(pg_catalog.||) $4), '0', $3 operator(pg_catalog.||) $4), $4)
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION export_set(bigint, text, text, text)
