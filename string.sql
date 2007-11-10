@@ -95,7 +95,7 @@ declare
     frombase ALIAS FOR $2;
     tobase_p ALIAS FOR $3;
 begin
-    if numin_p < 0 and tobase_p < 0 then
+    if numin_p < '0' and tobase_p < '0' then
       isneg := true;
       numin := numin_p::integer * -1;
       tobase := tobase_p * -1;
