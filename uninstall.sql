@@ -141,6 +141,7 @@ DROP FUNCTION curdate();
 DROP FUNCTION crc32(text);
 DROP FUNCTION convert_tz(timestamp without time zone, text, text);
 DROP FUNCTION conv(text, integer, integer);
+DROP FUNCTION conv(integer, integer, integer);
 DROP FUNCTION connection_id();
 DROP FUNCTION concat_ws(text, text, text, text);
 DROP FUNCTION concat_ws(text, text, text);
