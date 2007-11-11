@@ -21,7 +21,7 @@ that rely heavily on certain MySQL functions.
 Versions of PostgreSQL supported
 --------------------------------
 
-This package has been tested on PostgreSQL 8.1.x.
+This package has been tested on PostgreSQL 8.1.x, 8.2.x, and 8.3.x.
 
 Installation
 ------------
