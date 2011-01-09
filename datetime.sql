@@ -504,6 +504,10 @@ $$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- TIMESTAMPDIFF()
 -- Note that first parameter needs to be quoted in this version
+CREATE OR REPLACE FUNCTION timestampdiff(text, timestamp without time zone, timestamp without time zone)
+RETURNS integer AS $$
+  SELECT CEIL(EXTRACT(epoch FROM ($3 - $2)) / EXTRACT(epoch FROM ('1 ' operator(pg_catalog.||) $1)::interval))::integer
+$$ IMMUTABLE STRICT LANGUAGE SQL;
 
 -- TIME_FORMAT()
 CREATE OR REPLACE FUNCTION time_format(interval, text)
