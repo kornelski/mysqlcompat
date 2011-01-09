@@ -323,6 +323,13 @@ RETURNS text AS $$
   SELECT pg_catalog.upper(pg_catalog.to_hex($1))
 $$ IMMUTABLE STRICT LANGUAGE SQL;
 
+CREATE OR REPLACE FUNCTION hex(bytea)
+RETURNS text AS $$
+  BEGIN
+    RETURN pg_catalog.encode($1, 'hex');
+  END;
+$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+
 CREATE OR REPLACE FUNCTION hex(text)
 RETURNS text AS $$
   DECLARE
