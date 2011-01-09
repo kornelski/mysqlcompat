@@ -867,18 +867,7 @@ $$ IMMUTABLE STRICT LANGUAGE SQL;
 -- Not implemented.
 
 -- UNHEX()
--- Depends on: CONV()
 CREATE OR REPLACE FUNCTION unhex(text)
-RETURNS text AS $$
-  DECLARE
-    len integer := pg_catalog.length($1);
-    temp text := '';
-    i int := 1;
-  BEGIN
-    WHILE i <= len LOOP
-      temp := temp operator(pg_catalog.||) pg_catalog.chr(conv(substring($1 from i for 2), 16, 10)::integer);
-      i := i + 2;
-    END LOOP;
-    RETURN temp; 
-  END;
-$$ IMMUTABLE STRICT LANGUAGE PLPGSQL;
+RETURNS bytea AS $$
+  SELECT decode($1,'hex')
+$$ IMMUTABLE STRICT LANGUAGE SQL;
